@@ -8,7 +8,7 @@ def get_db_connection():
         host="surveyapp-db1.ctwkcywuyqju.us-east-1.rds.amazonaws.com",
         user="admin",
         password="TOP2020%",
-        database="surveys_db"
+        database="surveysApp_db"
     )
 
 # Function to fetch all records from the 'responses' table
@@ -38,6 +38,6 @@ if st.button("Show Records"):
         # Convert records to a DataFrame and display without index
         df = pd.DataFrame(records)
         df_with_index = df.set_index("id")
-        st.write(df_with_index, width=1000, height=500)  # Adjust width and height as needed
+        st.write(df_with_index, width=1000, height=300)  # Adjust width and height as needed
     else:
         st.warning("No records found or an error occurred.")

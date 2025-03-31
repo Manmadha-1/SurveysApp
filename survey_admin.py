@@ -9,8 +9,8 @@ def setup_database():
         password="TOP2020%"
     )
     cursor = conn.cursor()
-    cursor.execute("CREATE DATABASE IF NOT EXISTS surveys_db")
-    cursor.execute("USE surveys_db")
+    cursor.execute("CREATE DATABASE IF NOT EXISTS surveysApp_db")
+    cursor.execute("USE surveysApp_db")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS surveys (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,7 +33,7 @@ def get_db_connection():
         host="surveyapp-db1.ctwkcywuyqju.us-east-1.rds.amazonaws.com",
         user="admin",
         password="TOP2020%",
-        database="surveys_db"
+        database="surveysApp_db"
     )
 
 # Admin Management Console
