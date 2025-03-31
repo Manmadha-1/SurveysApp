@@ -8,7 +8,7 @@ def get_db_connection():
         host="surveyapp-db1.ctwkcywuyqju.us-east-1.rds.amazonaws.com",
         user="admin",
         password="TOP2020%",
-        database="surveysApp_db"
+        database="survey_app_db"
     )
 
 # Function to fetch all records from the 'responses' table
