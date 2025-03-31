@@ -6,7 +6,7 @@ def setup_database():
     conn = mysql.connector.connect(
         host="surveyapp-db1.ctwkcywuyqju.us-east-1.rds.amazonaws.com",
         user="admin",
-        password="TOP2020%"
+        password="TOP2020%",
     )
     cursor = conn.cursor()
     cursor.execute("CREATE DATABASE IF NOT EXISTS surveysApp_db")
@@ -20,9 +20,11 @@ def setup_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS questions (
             id INT AUTO_INCREMENT PRIMARY KEY,
+            survey_id INT NOT NULL,
             question_text VARCHAR(500) NOT NULL,
             is_required BOOLEAN NOT NULL,
-            UNIQUE (question_text) -- Ensure unique questions
+            UNIQUE (question_text, survey_id), -- Ensure unique questions per survey
+            FOREIGN KEY (survey_id) REFERENCES surveys(id) ON DELETE CASCADE
         )
     """)
     conn.close()
@@ -36,27 +38,27 @@ def get_db_connection():
         database="surveysApp_db"
     )
 
+
 # Admin Management Console
 def admin_console():
     st.title("Admin Management Console")
     
     # Step 1: Create a new survey
     survey_name = st.text_input("Enter Survey Name (Required):")
-    survey_created = False  # Flag to track if a survey is created
     if st.button("Create Survey"):
         if survey_name:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO surveys (name) VALUES (%s)", (survey_name,))
             conn.commit()
+            survey_id = cursor.lastrowid  # Automatically retrieve the new survey ID
             conn.close()
-            st.success(f"Survey '{survey_name}' created successfully!")
-            survey_created = True  # Set the flag to True
+            st.success(f"Survey '{survey_name}' created successfully with ID {survey_id}!")
         else:
             st.error("Survey name cannot be empty.")
     
     # Step 2: Display question input fields only if a survey is created
-    if survey_created or survey_name:  # Check if a survey is created or exists
+    if survey_name:  # Check if a survey name is provided
         st.subheader("Add Questions to the Survey")
         questions = []
         for i in range(1, 5):
@@ -71,25 +73,33 @@ def admin_console():
             if len(valid_questions) > 0:  # Ensure at least one question is filled
                 conn = get_db_connection()
                 cursor = conn.cursor()
-                for question_text, is_required in valid_questions:
-                    # Check if the question already exists
-                    cursor.execute(
-                        "SELECT id FROM questions WHERE question_text = %s",
-                        (question_text,)
-                    )
-                    existing_question = cursor.fetchone()
-                    
-                    if existing_question:
-                        st.warning(f"The question '{question_text}' already exists. No duplicate created.")
-                    else:
-                        # Insert the new question if it doesn't exist
+                
+                # Retrieve the survey ID
+                cursor.execute("SELECT id FROM surveys WHERE name = %s", (survey_name,))
+                survey = cursor.fetchone()
+                if survey:
+                    survey_id = survey[0]
+                    for question_text, is_required in valid_questions:
+                        # Check if the question already exists for the survey
                         cursor.execute(
-                            "INSERT INTO questions (question_text, is_required) VALUES (%s, %s)",
-                            (question_text, is_required)
+                            "SELECT id FROM questions WHERE question_text = %s AND survey_id = %s",
+                            (question_text, survey_id)
                         )
-                conn.commit()
-                conn.close()
-                st.success("Questions added successfully!")
+                        existing_question = cursor.fetchone()
+                        
+                        if existing_question:
+                            st.warning(f"The question '{question_text}' already exists in this survey. No duplicate created.")
+                        else:
+                            # Insert the new question if it doesn't exist
+                            cursor.execute(
+                                "INSERT INTO questions (survey_id, question_text, is_required) VALUES (%s, %s, %s)",
+                                (survey_id, question_text, is_required)
+                            )
+                    conn.commit()
+                    conn.close()
+                    st.success("Questions added successfully!")
+                else:
+                    st.error("Failed to retrieve survey ID. Please try again.")
             else:
                 st.error("At least one question must be filled.")
 

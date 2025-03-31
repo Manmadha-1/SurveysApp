@@ -6,7 +6,7 @@ def setup_database():
     conn = mysql.connector.connect(
         host="surveyapp-db1.ctwkcywuyqju.us-east-1.rds.amazonaws.com",
         user="admin",
-        password="TOP2020%"
+        password="TOP2020%",
     )
     cursor = conn.cursor()
     cursor.execute("CREATE DATABASE IF NOT EXISTS surveysApp_db")
@@ -55,7 +55,7 @@ def user_interface():
                 st.subheader(f"Survey: {survey['name']}")
                 
                 # Fetch survey questions
-                cursor.execute("SELECT * FROM questions WHERE id = %s", (survey_id,))
+                cursor.execute("SELECT * FROM questions WHERE survey_id = %s", (survey_id,))
                 questions = cursor.fetchall()
                 conn.close()
                 
