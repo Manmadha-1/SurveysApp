@@ -38,6 +38,6 @@ if st.button("Show Records"):
         # Convert records to a DataFrame and display without index
         df = pd.DataFrame(records)
         df_with_index = df.set_index("id")
-        st.write(df_with_index)
+        st.write(df_with_index, width=1000, height=500)  # Adjust width and height as needed
     else:
         st.warning("No records found or an error occurred.")

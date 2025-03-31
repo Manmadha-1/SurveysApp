@@ -36,61 +36,70 @@ def user_interface():
     # Default title
     st.title("Survey Response")
     
-    # Step 1: User enters survey ID
-    survey_id = st.number_input("Enter Survey ID:", min_value=1, step=1)
+    # Step 1: Get survey ID from URL parameters
+    query_params = st.query_params
+    survey_id = query_params.get("survey_id", [None])[0]  # Get survey_id from URL
+    
     if survey_id:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Fetch survey name
-        cursor.execute("SELECT name FROM surveys WHERE id = %s", (survey_id,))
-        survey = cursor.fetchone()
-        
-        if survey:
-            # Update the title dynamically with the survey name
-            st.subheader(f"Survey: {survey['name']}")
+        try:
+            survey_id = int(survey_id)  # Ensure survey_id is an integer
+            conn = get_db_connection()
+            cursor = conn.cursor(dictionary=True)
             
-            # Fetch survey questions
-            cursor.execute("SELECT * FROM questions WHERE survey_id = %s", (survey_id,))
-            questions = cursor.fetchall()
-            conn.close()
+            # Fetch survey name
+            cursor.execute("SELECT name FROM surveys WHERE id = %s", (survey_id,))
+            survey = cursor.fetchone()
             
-            if questions:
-                responses = {}
-                missing_required = False  # Flag to track missing required responses
-                for question in questions:
-                    if question["is_required"]:
-                        responses[question["id"]] = st.text_input(f"{question['question_text']} (Required)")
-                    else:
-                        responses[question["id"]] = st.text_input(f"{question['question_text']}")
+            if survey:
+                # Update the title dynamically with the survey name
+                st.subheader(f"Survey: {survey['name']}")
                 
-                # Step 3: Save responses
-                if st.button("Save Responses"):
-                    # Validate required responses
+                # Fetch survey questions
+                cursor.execute("SELECT * FROM questions WHERE id = %s", (survey_id,))
+                questions = cursor.fetchall()
+                conn.close()
+                
+                if questions:
+                    responses = {}
+                    missing_required = False  # Flag to track missing required responses
                     for question in questions:
-                        if question["is_required"] and not responses[question["id"]].strip():
-                            st.warning(f"Please fill in the required question: {question['question_text']}")
-                            missing_required = True
-                            break
+                        if question["is_required"]:
+                            responses[question["id"]] = st.text_input(f"{question['question_text']} (Required)")
+                        else:
+                            responses[question["id"]] = st.text_input(f"{question['question_text']}")
                     
-                    if not missing_required:
-                        conn = get_db_connection()
-                        cursor = conn.cursor()
-                        for question_id, response in responses.items():
-                            # Fetch the question text for the current question ID
-                            question_text = next(q["question_text"] for q in questions if q["id"] == question_id)
-                            cursor.execute(
-                                "INSERT INTO responses (question_id, question_text, response_text) VALUES (%s, %s, %s)",
-                                (question_id, question_text, response)
-                            )
-                        conn.commit()
-                        conn.close()
-                        st.success("Thank you for taking the survey!")
+                    # Step 3: Save responses
+                    if st.button("Save Responses"):
+                        # Validate required responses
+                        for question in questions:
+                            if question["is_required"] and not responses[question["id"]].strip():
+                                st.warning(f"Please fill in the required question: {question['question_text']}")
+                                missing_required = True
+                                break
+                        
+                        if not missing_required:
+                            conn = get_db_connection()
+                            cursor = conn.cursor()
+                            for question_id, response in responses.items():
+                                # Fetch the question text for the current question ID
+                                question_text = next(q["question_text"] for q in questions if q["id"] == question_id)
+                                cursor.execute(
+                                    "INSERT INTO responses (question_id, question_text, response_text) VALUES (%s, %s, %s)",
+                                    (question_id, question_text, response)
+                                )
+                            conn.commit()
+                            conn.close()
+                            st.success("Thank you for taking the survey!")
+                           
+                else:
+                    st.error("No questions found for this survey.")
             else:
-                st.error("No questions found for this survey.")
-        else:
-            st.error("Survey not found.")
-            conn.close()
+                st.error("Survey not found.")
+                conn.close()
+        except ValueError:
+            st.error("Invalid survey ID.")
+    else:
+        st.error("No survey ID provided in the URL.")
 
 # Main function
 def main():
